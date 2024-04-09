@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'users.apps.UsersConfig',
+    'recipes.apps.RecipesConfig'
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,8 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LETTERS_IN_USERS_FIELD = 150
+LETTERS_IN_FIELD = 200
+FIELDS_SHORT_NAME = 20
+LETTERS_IN_EMAIL = 254
+LETTERS_IN_COLOR = 7
+MIN_VALUE_SCORE = 1

@@ -41,10 +41,10 @@ from .validators import validate_username
 
 
 class MyUser(AbstractUser):
-    """Класс пользователей."""
+    """Пользователь."""
 
     email = models.EmailField(
-        max_length=254,
+        max_length=settings.LETTERS_IN_EMAIL,
         unique=True,
         verbose_name='Адрес электронной почты'
     )
@@ -70,4 +70,4 @@ class MyUser(AbstractUser):
         ordering = ('username',)
 
     def __str__(self):
-        return self.username
+        return self.username[:settings.FIELDS_SHORT_NAME]
