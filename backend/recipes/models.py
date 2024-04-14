@@ -12,8 +12,7 @@ class NameBaseModel(models.Model):
     """Абстрактная модель с полем name."""
     name = models.CharField(
         'Название',
-        max_length=settings.LETTERS_IN_FIELD,
-        unique=True
+        max_length=settings.LETTERS_IN_FIELD
     )
 
     class Meta:
@@ -39,8 +38,7 @@ class UserBaseModel(models.Model):
 class Tag(NameBaseModel):
     """Тег рецепта."""
     color = ColorField(
-        'Цвет в HEX',
-        unique=True
+        'Цвет в HEX'
     )
     slug = models.SlugField(
         'Уникальный слаг',
@@ -79,24 +77,6 @@ class Follow(UserBaseModel):
     )
 
 
-class RecipeIngredient(models.Model):
-    """Ингредиенты для конкретного рецепта с количеством."""
-    amount = models.PositiveSmallIntegerField(
-        'Количество в рецепте',
-        validators=[
-            MinValueValidator(
-                limit_value=settings.MIN_VALUE_SCORE,
-                message=('Количество не должно быть '
-                         f'меньше {settings.MIN_VALUE_SCORE} ед.')
-            )
-        ]
-    )
-    ingredients = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE
-    )
-
-
 class Recipe(NameBaseModel):
     """Рецепты пользователя."""
     text = models.TextField('Описание')
@@ -113,7 +93,7 @@ class Recipe(NameBaseModel):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipes'
+        related_name='recipes_author'
     )
     image = models.ImageField(
         'Картинка',
@@ -124,14 +104,38 @@ class Recipe(NameBaseModel):
         related_name='tags_recipe'
     )
     ingredients = models.ManyToManyField(
-        'Список ингредиентов',
-        RecipeIngredient,
-        related_name='ingredients_recipe'
+        Ingredient,
+        through='RecipeIngredient',
+        verbose_name='Список ингредиентов',
     )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+
+
+class RecipeIngredient(models.Model):
+    """Ингредиенты для конкретного рецепта с количеством."""
+    amount = models.PositiveSmallIntegerField(
+        'Количество в рецепте',
+        validators=[
+            MinValueValidator(
+                limit_value=settings.MIN_VALUE_SCORE,
+                message=('Количество не должно быть '
+                         f'меньше {settings.MIN_VALUE_SCORE} ед.')
+            )
+        ]
+    )
+    ingredients = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='ingredients'
+    )
+    recipes = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='reciepes'
+    )
 
 
 class UserRecipeBaseModel(UserBaseModel):

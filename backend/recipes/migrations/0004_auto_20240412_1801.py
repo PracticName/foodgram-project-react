@@ -1,4 +1,3 @@
-# praktikum_new_diplom
 import csv
 
 from django.conf import settings

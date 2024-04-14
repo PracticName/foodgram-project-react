@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 
 def validate_username(username):
-    pattern = re.compile(r'^[\w.@+-]+\z')
+    pattern = re.compile(r'^[\w.@+-]+\Z')
 
     if pattern.fullmatch(username) is None:
         match = re.split(pattern, username)
