@@ -63,7 +63,7 @@ class SpecialUserViewSet(UserViewSet):
                     )
                 )
             )
-            return queryset          
+            return queryset
         queryset = User.objects.annotate(
             is_subscribed=(Value(False))
             )

@@ -76,6 +76,10 @@ class Follow(UserBaseModel):
         on_delete=models.CASCADE, related_name='followers'
     )
 
+    class Meta:
+        verbose_name = 'Подписка на рецепт'
+        verbose_name_plural = 'Подписка на рецепты'
+
 
 class Recipe(NameBaseModel):
     """Рецепты пользователя."""
@@ -138,6 +142,10 @@ class RecipeIngredient(models.Model):
         related_name='reciepes'
     )
 
+    class Meta:
+        verbose_name = 'Ингридеент Рецепта'
+        verbose_name_plural = 'Ингридеенты Рецепта'
+
 
 class UserRecipeBaseModel(UserBaseModel):
     """Абстрактная модель с полем recipe.
@@ -159,7 +167,15 @@ class Favorite(UserRecipeBaseModel):
     """Избранные рецепты пользователя."""
     pass
 
+    class Meta:
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
+
 
 class ShoppingCart(UserRecipeBaseModel):
-    """Подписка на рецепты пользователя."""
+    """Добавление рецепта в корзину."""
     pass
+
+    class Meta:
+        verbose_name = 'Корзина рецепта'
+        verbose_name_plural = 'Корзина рецептов'

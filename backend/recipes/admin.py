@@ -22,7 +22,7 @@ class FollowAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    """Класс настройки подписок на пользователя."""
+    """Класс настройки Тегов."""
 
     list_display = (
         'id',
@@ -35,7 +35,7 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    """Класс настройки подписок на пользователя."""
+    """Класс настройки Ингредиентов."""
 
     list_display = (
         'id',
@@ -49,7 +49,7 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    """Класс настройки подписок на пользователя."""
+    """Класс настройки Рецепта."""
 
     list_display = (
         'id',
@@ -64,7 +64,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
-    """Класс настройки подписок на пользователя."""
+    """ласс настройки Рецепта с Ингридеентом."""
 
     list_display = (
         'recipes',

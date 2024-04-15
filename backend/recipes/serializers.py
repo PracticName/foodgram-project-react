@@ -3,6 +3,7 @@ import base64
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db.models import F
+from django.db import transaction
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from rest_framework.generics import get_object_or_404
 from rest_framework import serializers
@@ -134,3 +135,27 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
         read_only_fields = ('author',)
+
+    @transaction.atomic
+    def create_recipeingredient(self, ingredients, recipe):
+        RecipeIngredient.objects.bulk_create(
+            [RecipeIngredient(
+                ingredients=Ingredient.objects.get(id=ingredient['id']),
+                recipes=recipe,
+                amount=ingredient['amount']
+                ) for ingredient in ingredients]
+        )
+
+    @transaction.atomic
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+        self.create_recipeingredient(ingredients=ingredients, recipe=recipe)
+        return recipe
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return RecipeRSerializer(instance, context=context).data
