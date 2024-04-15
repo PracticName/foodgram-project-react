@@ -107,6 +107,7 @@ class Recipe(NameBaseModel):
         Ingredient,
         through='RecipeIngredient',
         verbose_name='Список ингредиентов',
+        related_name='recipes'
     )
 
     class Meta:

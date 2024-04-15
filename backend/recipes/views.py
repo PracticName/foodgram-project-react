@@ -1,15 +1,15 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import BooleanField, Value, Case, When
-from django.shortcuts import get_object_or_404
+from rest_framework.generics import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Ingredient, Tag, Follow
-from .serializers import IngredientSerialiser, TagSerializer, SpecialUserSerializer, SpecialUserCreateSerializer
+from .models import Ingredient, Tag, Follow, Recipe
+from .serializers import IngredientSerialiser, TagSerializer, SpecialUserSerializer, SpecialUserCreateSerializer, RecipeRSerializer, RecipeCUDSerializer
 
 User = get_user_model()
 
@@ -25,8 +25,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SpecialUserViewSet(UserViewSet):
-    # permission_classes = [IsAuthenticatedOrReadOnly,]
-    serializer_class = SpecialUserSerializer
 
     def get_queryset(self):
         return User.objects.all()
@@ -85,7 +83,20 @@ class SpecialUserViewSet(UserViewSet):
         queryset = User.objects.annotate(
             is_subscribed=Value(
                 Follow.objects.filter(
-                    user=request_user, following=self.get_object()).exists()
+                    user=request_user.id, following=Value('id').exists()
             )
         )
         return queryset'''
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeRSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return RecipeRSerializer
+        return RecipeCUDSerializer

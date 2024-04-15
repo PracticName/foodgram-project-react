@@ -20,6 +20,19 @@ class FollowAdmin(admin.ModelAdmin):
     search_fields = ('user',)
 
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    """Класс настройки подписок на пользователя."""
+
+    list_display = (
+        'id',
+        'name',
+        'color',
+        'slug',
+    )
+    list_editable = ('name', 'color', 'slug')
+
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     """Класс настройки подписок на пользователя."""
@@ -32,3 +45,29 @@ class IngredientAdmin(admin.ModelAdmin):
     list_editable = ('name', 'measurement_unit')
     list_filter = ('name',)
     search_fields = ('name',)
+
+
+@admin.register(Recipe)
+class RecipeAdmin(admin.ModelAdmin):
+    """Класс настройки подписок на пользователя."""
+
+    list_display = (
+        'id',
+        'author',
+        'name',
+        'text',
+        'cooking_time',
+    )
+    list_editable = ('name', 'text', 'cooking_time')
+    list_filter = ('author',)
+
+
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    """Класс настройки подписок на пользователя."""
+
+    list_display = (
+        'recipes',
+        'ingredients',
+        'amount',
+    )
