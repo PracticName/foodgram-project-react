@@ -45,8 +45,8 @@ class SpecialUserCreateSerializer(UserCreateSerializer):
 
 class SpecialUserSerializer(UserSerializer):
     """Сериализатор текущего пользователя."""
-    # is_subscribed = serializers.BooleanField(read_only=True)
-    is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField(read_only=True)
+    # is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         model = User
@@ -59,12 +59,12 @@ class SpecialUserSerializer(UserSerializer):
             'is_subscribed'
         )
 
-    def get_is_subscribed(self, obj):
+    '''def get_is_subscribed(self, obj):
         current_user = self.context.get('request').user
         if current_user.is_authenticated:
             return Follow.objects.filter(
                 user=current_user, following=obj).exists()
-        return False
+        return False'''
 
 
 class Base64ImageField(serializers.ImageField):

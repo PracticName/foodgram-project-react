@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-CUR_DIR = BASE_DIR / '..'
+CUR_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-4k#$dt#d-9v*dy%n!hue1rf2kv&5t#g(*t)grc$8813jmdr))o'
@@ -64,8 +68,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'django'),
+        'USER': os.getenv('POSTGRES_USER', 'django'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
 
@@ -106,7 +114,7 @@ USE_TZ = True
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.AllowAny',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -123,9 +131,10 @@ DJOSER = {
     'SERIALIZERS': {
         'user_create': 'recipes.serializers.SpecialUserCreateSerializer',
         'user': 'recipes.serializers.SpecialUserSerializer',
-        'current_user': 'recipes.serializers.SpecialUserSerializer',
+        'current_user': 'recipes.serializers.SpecialUserSerializer'
     },
     'PERMISSIONS': {
+#        'user_list': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
         'user': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
         'user_list': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
     },
@@ -135,6 +144,7 @@ DJOSER = {
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

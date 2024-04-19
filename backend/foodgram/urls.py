@@ -10,6 +10,7 @@ router = routers.DefaultRouter()
 router.register(r'tags', TagViewSet, basename='tags')
 router.register(r'ingredients', IngredientViewSet, basename='ingredients')
 router.register(r'recipes', RecipeViewSet, basename='recipes')
+# router.register(r'users', SpecialUserViewSet, basename='users')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -1,14 +1,14 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import BooleanField, Value, Case, When
+from django.db.models import BooleanField, Value, Case, When, Exists, F, Subquery, OuterRef, Q
 from rest_framework.generics import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Ingredient, Tag, Follow, Recipe
+from .models import Ingredient, Tag, Follow, Recipe, Favorite
 from .serializers import IngredientSerialiser, TagSerializer, SpecialUserSerializer, SpecialUserCreateSerializer, RecipeRSerializer, RecipeCUDSerializer
 
 User = get_user_model()
@@ -27,66 +27,36 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class SpecialUserViewSet(UserViewSet):
 
     def get_queryset(self):
-        return User.objects.all()
-
-    '''def get_current_obj(self):
-        return get_object_or_404(
-                User, id=self.kwargs.get('id'),
-            )
-
-    def get_queryset(self):
-        request_user = self.get_instance()
-        queryset = User.objects.all()
-        if request_user.is_authenticated:
-            if self.action == 'list':
-                for current_user in queryset:
-                    queryset = User.objects.annotate(
-                        is_subscribed=(
-                            Value(
-                                any(user.id == current_user.id for user in request_user.recipes_follow_related.all())
-                            )
-                        )
-                    )
-                return queryset
-            if self.action == 'me':
-                queryset = User.objects.annotate(
-                    is_subscribed=(
-                        Value(False)
-                    )
-                )
-                return queryset
-            obj_user = self.get_current_obj()
+        if self.get_instance().is_authenticated:
             queryset = User.objects.annotate(
-                is_subscribed=(
-                    Value(
-                        any(user.id == obj_user.id for user in request_user.recipes_follow_related.all())
+                is_subscribed=Exists(
+                    Follow.objects.filter(
+                        user=self.get_instance(),
+                        following=OuterRef('id')
                     )
                 )
             )
             return queryset
-        queryset = User.objects.annotate(
-            is_subscribed=(Value(False))
-            )
-        return queryset'''
-    '''def get_user(self):
-        return get_object_or_404(
-                User, id=self.kwargs.get('id'),
-            )'''
-
-    '''def get_queryset(self):
-        request_user = self.request.user
-        if request_user.is_anonymous:
-            queryset = User.objects.annotate(
+        return User.objects.annotate(
                 is_subscribed=Value(False)
             )
-            return queryset
-        queryset = User.objects.annotate(
-            is_subscribed=Value(
-                Follow.objects.filter(
-                    user=request_user.id, following=Value('id').exists()
-            )
-        )
-        return queryset'''
+
+    '''@action(
+        detail=False,
+        methods=['GET',],
+        permission_classes=(IsAuthenticated,)
+    )
+    def me(self, request):
+        user = get_object_or_404(User, pk=request.user.id)
+        serializer = SpecialUserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)'''
+
+    '''def get_serializer_class(self):
+        if self.action == 'create':
+            return SpecialUserCreateSerializer
+        if self.action == 'me':
+            return SpecialUserSerializer
+        return SpecialUserSerializer'''
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -100,3 +70,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return RecipeRSerializer
         return RecipeCUDSerializer
+
