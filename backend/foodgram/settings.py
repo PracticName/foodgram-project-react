@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
     'colorfield',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -116,13 +117,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
 
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 6,
+#    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+#    'PAGE_SIZE': 6,
 
 }
 
@@ -136,7 +140,9 @@ DJOSER = {
     'PERMISSIONS': {
 #        'user_list': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
         'user': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
-        'user_list': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
+#        'user_list': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'user_create': ['rest_framework.permissions.AllowAny'],
     },
 }
 

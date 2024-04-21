@@ -46,7 +46,6 @@ class SpecialUserCreateSerializer(UserCreateSerializer):
 class SpecialUserSerializer(UserSerializer):
     """Сериализатор текущего пользователя."""
     is_subscribed = serializers.BooleanField(read_only=True)
-    # is_subscribed = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         model = User
@@ -58,13 +57,6 @@ class SpecialUserSerializer(UserSerializer):
             'last_name',
             'is_subscribed'
         )
-
-    '''def get_is_subscribed(self, obj):
-        current_user = self.context.get('request').user
-        if current_user.is_authenticated:
-            return Follow.objects.filter(
-                user=current_user, following=obj).exists()
-        return False'''
 
 
 class Base64ImageField(serializers.ImageField):
@@ -82,7 +74,11 @@ class RecipeRSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = SpecialUserSerializer(default=serializers.CurrentUserDefault())
     ingredients = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField()
+    # is_favorited = serializers.BooleanField(read_only=True)
+    # is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Recipe
@@ -91,8 +87,8 @@ class RecipeRSerializer(serializers.ModelSerializer):
             'tags',
             'author',
             'ingredients',
-        #    'is_favorited',
-        #    'is_in_shopping_cart',
+            'is_favorited',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
@@ -109,6 +105,18 @@ class RecipeRSerializer(serializers.ModelSerializer):
             amount=F('ingredients__amount')
         )
         return ingredients
+
+    def get_is_favorited(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return user.recipes_userrecipebasemodel_related.filter(recipe=obj).exists()
+        return False
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return user.recipes_userrecipebasemodel_related.filter(recipe=obj).exists()
+        return False
 
 
 class RecipeCUDSerializer(serializers.ModelSerializer):
@@ -127,8 +135,6 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
             'tags',
             'author',
             'ingredients',
-        #    'is_favorited',
-        #    'is_in_shopping_cart',
             'name',
             'image',
             'text',
@@ -159,3 +165,49 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         context = {'request': request}
         return RecipeRSerializer(instance, context=context).data
+
+
+class RecipeFavSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
+
+
+class FollowSerialiser(SpecialUserSerializer):
+    recipes_count = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+        )
+        read_only_fields = (
+            'email', 'username', 'first_name', 'last_name',
+        )
+
+    def get_recipes_count(self, obj):
+        return obj.recipes_author.count()
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit = request.query_params.get('recipes_limit')  # GET
+        recipes = obj.recipes_author.all()
+        if limit:
+            recipes = recipes[:int(limit)]
+        serializer = RecipeFavSerializer(recipes, many=True, read_only=True)
+        return serializer.data

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.contrib.auth.validators import UnicodeUsernameValidator, ASCIIUsernameValidator
 from django.db import models
 
 from .validators import validate_username
@@ -43,7 +43,6 @@ from .validators import validate_username
 
 class MyUser(AbstractUser):
     """Пользователь."""
-    username_validator = UnicodeUsernameValidator()
 
     email = models.EmailField(
         max_length=settings.LETTERS_IN_EMAIL,
@@ -55,7 +54,7 @@ class MyUser(AbstractUser):
         unique=True,
         db_index=True,
         verbose_name='Уникальный юзернейм',
-        validators=[username_validator]
+        validators=[ASCIIUsernameValidator(),]
     )
     first_name = models.CharField(
         max_length=settings.LETTERS_IN_USERS_FIELD,

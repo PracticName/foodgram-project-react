@@ -36,6 +36,15 @@ urlpatterns = [
         ), name='set_password'
     ),
     path('api/auth/', include('djoser.urls.authtoken')),
+    path(
+        'api/users/<int:id>/subscribe/',
+        SpecialUserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
+        name='subscribe'
+    ),
+    path(
+        'api/users/subscriptions/',
+        SpecialUserViewSet.as_view({'get': 'subscriptions'}),
+        name='subscribe'),
 ]
 
 if settings.DEBUG:
