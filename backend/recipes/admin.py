@@ -71,3 +71,29 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
         'ingredients',
         'amount',
     )
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    """Класс настройки Рецепта."""
+
+    list_display = (
+        'id',
+        'user',
+        'recipe',
+    )
+    list_editable = ('user', 'recipe')
+    list_filter = ('user', 'recipe')
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+    """Класс настройки Рецепта."""
+
+    list_display = (
+        'id',
+        'user',
+        'recipe',
+    )
+    list_editable = ('user', 'recipe')
+    list_filter = ('user', 'recipe')

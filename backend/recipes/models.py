@@ -17,7 +17,7 @@ class NameBaseModel(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ('-name',)
+    #    ordering = ('-name',)
 
     def __str__(self):
         return self.name[:settings.FIELDS_SHORT_NAME]
@@ -68,6 +68,7 @@ class Ingredient(NameBaseModel):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        ordering = ('name',)
 
 
 class Follow(UserBaseModel):
@@ -79,6 +80,7 @@ class Follow(UserBaseModel):
     class Meta:
         verbose_name = 'Подписка на рецепт'
         verbose_name_plural = 'Подписка на рецепты'
+        ordering = ('id',)
 
 
 class Recipe(NameBaseModel):
@@ -117,6 +119,7 @@ class Recipe(NameBaseModel):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ('name',)
 
 
 class RecipeIngredient(models.Model):
@@ -145,6 +148,7 @@ class RecipeIngredient(models.Model):
     class Meta:
         verbose_name = 'Ингридеент Рецепта'
         verbose_name_plural = 'Ингридеенты Рецепта'
+        ordering = ('-id',)
 
 
 class UserRecipeBaseModel(UserBaseModel):
@@ -159,8 +163,8 @@ class UserRecipeBaseModel(UserBaseModel):
         related_name='%(app_label)s_%(class)s_related'
     )
 
-    class Meta(UserBaseModel.Meta):
-        pass
+    class Meta:
+        abstract = True
 
 
 class Favorite(UserRecipeBaseModel):
@@ -170,6 +174,7 @@ class Favorite(UserRecipeBaseModel):
     class Meta:
         verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
+        ordering = ('-recipe',)
 
 
 class ShoppingCart(UserRecipeBaseModel):
@@ -179,3 +184,4 @@ class ShoppingCart(UserRecipeBaseModel):
     class Meta:
         verbose_name = 'Корзина рецепта'
         verbose_name_plural = 'Корзина рецептов'
+        ordering = ('-recipe',)

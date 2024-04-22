@@ -1,4 +1,29 @@
 # praktikum_new_diplom
+Создайте пустую миграцию 
+python manage.py makemigrations --empty appname
+
+Создается примерно такая миграция:
+import csv
+
+from django.conf import settings
+from django.db import migrations
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+    ]
+
+    operations = [
+    ]
+
+Далеее добавьте в operations операцию RunPython. Она запускает функцию, которую вы ей предадите.
+
+ operations = [
+        migrations.RunPython(copy_ingredients),
+    ]
+Осталось только написать эту функцию:
+
 import csv
 
 from django.conf import settings

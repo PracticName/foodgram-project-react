@@ -3,13 +3,13 @@ from django_filters import rest_framework as filters
 from .models import Ingredient, Recipe, Tag
 
 
-'''class IngredientFilter(filters.FilterSet):
+class IngredientFilter(filters.FilterSet):
     """Фитльтр для ингридиентов."""
     name = filters.CharFilter(lookup_expr='startswith')
 
     class Meta:
         model = Ingredient
-        fields = ('name',)'''
+        fields = ('name',)
 
 
 class RecipeFilter(filters.FilterSet):
@@ -31,11 +31,11 @@ class RecipeFilter(filters.FilterSet):
     def filter_is_favorited(self, queryset, name, value):
         user = self.request.user
         if value and user.is_authenticated:
-            return queryset.filter(recipes_userrecipebasemodel_related__user=user)
+            return queryset.filter(recipes_favorite_related__user=user)
         return queryset
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if value and user.is_authenticated:
-            return queryset.filter(recipes_userrecipebasemodel_related__user=user)
+            return queryset.filter(recipes_shoppingcart_related__user=user)
         return queryset

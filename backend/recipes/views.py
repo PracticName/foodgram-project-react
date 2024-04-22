@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import BooleanField, Value, Case, When, Exists, F, Subquery, OuterRef, Q
+from django.db.models import BooleanField, Value, Case, Count, When, Exists, F, Subquery, OuterRef, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import get_object_or_404
 
@@ -23,22 +23,27 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+    http_method_names = ['get',]
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerialiser
-    # filter_backends = (DjangoFilterBackend,)
-    # filterset_class = IngredientFilter
     permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+    http_method_names = ['get',]
+#    filter_backends = (DjangoFilterBackend,)
+#    filterset_class = IngredientFilter
 
     def get_queryset(self):
         return Ingredient.objects.filter(
-            name__startswith=self.request.query_params.get('name')
+            name__startswith=self.request.query_params.get('name', None)
         )
 
 
 class SpecialUserViewSet(UserViewSet):
-    pagination_class = CurrentPagination
+#    pagination_class = CurrentPagination
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
@@ -49,7 +54,8 @@ class SpecialUserViewSet(UserViewSet):
                         user=self.get_instance(),
                         following=OuterRef('id')
                     )
-                )
+                ),
+#                recipes_count=Count('recipes_author')
             )
             return queryset
         return User.objects.annotate(
@@ -62,7 +68,6 @@ class SpecialUserViewSet(UserViewSet):
 #        permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, **kwargs):
-        print('1111111111111111111111')
         user = request.user
         author_id = self.kwargs.get('id')
         author = get_object_or_404(User, id=author_id)
@@ -89,9 +94,14 @@ class SpecialUserViewSet(UserViewSet):
 #        permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
-        print('2222222222222222222222')
         user = request.user
-        queryset = User.objects.filter(followers__user=user)
+#        author_recipes = user.recipes_author.all()
+        queryset = self.get_queryset().filter(followers__user=user).annotate(
+            recipes_count=Count('recipes_author'),
+#            recipes=Subquery(
+#                author_recipes.values('id', 'name', 'image', 'cooking_time')
+#            ),
+        )
         pages = self.paginate_queryset(queryset)
         serializer = FollowSerialiser(
             pages, many=True, context={'request': request}
@@ -112,20 +122,30 @@ class SpecialUserViewSet(UserViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeRSerializer
+#    serializer_class = RecipeRSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
-    pagination_class = CurrentPagination
+#    pagination_class = CurrentPagination
 
-    '''def get_queryset(self):
+    def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
             queryset = Recipe.objects.annotate(
-                is_favorited=Exists(user.recipes_userrecipebasemodel_related.filter(recipe=OuterRef('id'))))
+                is_favorited=Exists(
+                    user.recipes_favorite_related.filter(
+                        recipe=OuterRef('id'))
+                ),
+                is_in_shopping_cart=Exists(
+                    user.recipes_shoppingcart_related.filter(
+                        recipe=OuterRef('id'))
+                )
+            )
             return queryset
-        # .annotate(is_in_shopping_cart=Value(False))
-        return Recipe.objects.annotate(is_favorited=Value(False))'''
+        return Recipe.objects.annotate(
+            is_favorited=Value(False),
+            is_in_shopping_cart=Value(False)
+        )
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
