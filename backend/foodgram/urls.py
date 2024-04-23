@@ -4,13 +4,17 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework import routers
 
-from recipes.views import IngredientViewSet, TagViewSet, SpecialUserViewSet, RecipeViewSet
+from recipes.views import (
+    IngredientViewSet,
+    RecipeViewSet,
+    SpecialUserViewSet,
+    TagViewSet,
+)
 
 router = routers.DefaultRouter()
 router.register(r'tags', TagViewSet, basename='tags')
 router.register(r'ingredients', IngredientViewSet, basename='ingredients')
 router.register(r'recipes', RecipeViewSet, basename='recipes')
-# router.register(r'users', SpecialUserViewSet, basename='users')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,7 +42,9 @@ urlpatterns = [
     path('api/auth/', include('djoser.urls.authtoken')),
     path(
         'api/users/<int:id>/subscribe/',
-        SpecialUserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
+        SpecialUserViewSet.as_view(
+            {'post': 'subscribe', 'delete': 'subscribe'}
+        ),
         name='subscribe'
     ),
     path(

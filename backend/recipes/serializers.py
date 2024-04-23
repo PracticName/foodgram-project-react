@@ -4,11 +4,10 @@ from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db.models import F
 from django.db import transaction
-from djoser.serializers import UserSerializer, UserCreateSerializer
-from rest_framework.generics import get_object_or_404
+from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
-from recipes.models import Ingredient, Tag, Follow, RecipeIngredient, Recipe
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, Follow
 
 User = get_user_model()
 
@@ -31,10 +30,25 @@ class IngredientSerialiser(serializers.ModelSerializer):
 class RecipeIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиента с полем amount рецепта."""
     id = serializers.IntegerField(write_only=True)
+#    id = serializers.PrimaryKeyRelatedField(write_only=True)
 
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'amount')
+
+
+'''class RecipeIngredientRSerializer(serializers.ModelSerializer):
+    """Сериализатор."""
+    name = serializers.CharField(read_only=True)
+    measurement_unit = serializers.CharField(read_only=True)
+    amount = RecipeIngredientSerializer(read_only=True)
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = RecipeIngredient
+#        fields = ('ingredients', 'amount')
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+#        depth = 1'''
 
 
 class SpecialUserCreateSerializer(UserCreateSerializer):
@@ -76,8 +90,8 @@ class RecipeRSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = SpecialUserSerializer(default=serializers.CurrentUserDefault())
     ingredients = serializers.SerializerMethodField()
-    # is_favorited = serializers.SerializerMethodField()
-    # is_in_shopping_cart = serializers.SerializerMethodField()
+#    ingredients = RecipeIngredientSerializer(many=True, source='reciepes')
+
     image = Base64ImageField()
     is_favorited = serializers.BooleanField(read_only=True)
     is_in_shopping_cart = serializers.BooleanField(read_only=True)
@@ -107,18 +121,6 @@ class RecipeRSerializer(serializers.ModelSerializer):
             amount=F('ingredients__amount')
         )
         return ingredients
-
-    '''def get_is_favorited(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return user.recipes_favorite_related.filter(recipe=obj).exists()
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return user.recipes_shoppingcart_related.filter(recipe=obj).exists()
-        return False'''
 
 
 class RecipeCUDSerializer(serializers.ModelSerializer):
@@ -198,10 +200,12 @@ class RecipeFavSerializer(serializers.ModelSerializer):
 
 class FollowSerialiser(SpecialUserSerializer):
     """Сериализатор подписок."""
-#    recipes_count = serializers.SerializerMethodField()
-    recipes = serializers.SerializerMethodField()
+#    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(read_only=True)
-#    recipes = RecipeFavSerializer(many=True, read_only=True)
+    recipes = RecipeFavSerializer(
+        many=True,
+        source='recipes_author',
+        read_only=True)
 
     class Meta:
         model = User
@@ -219,14 +223,7 @@ class FollowSerialiser(SpecialUserSerializer):
             'email', 'username', 'first_name', 'last_name', 'is_subscribed',
         )
 
-    '''def get_recipes_count(self, obj):
-        return obj.recipes_author.count()'''
-
-    def get_recipes(self, obj):
-#        request = self.context.get('request')
-#        limit = request.query_params.get('recipes_limit')  # GET
+    '''def get_recipes(self, obj):
         recipes = obj.recipes_author.all()
-#        if limit:
-#            recipes = recipes[:int(limit)]
         serializer = RecipeFavSerializer(recipes, many=True, read_only=True)
-        return serializer.data
+        return serializer.data'''

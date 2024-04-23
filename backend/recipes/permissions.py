@@ -16,6 +16,12 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
+    """
+    Предоставляет доступ к объекту только автору.
+
+    Разрешает анонимному и аутентифицированному пользователю
+    только безопасные запросы.
+    """
     def has_permission(self, request, view):
         return (request.method in permissions.SAFE_METHODS
                 or request.user.is_authenticated)

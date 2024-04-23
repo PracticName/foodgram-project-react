@@ -138,9 +138,7 @@ DJOSER = {
         'current_user': 'recipes.serializers.SpecialUserSerializer'
     },
     'PERMISSIONS': {
-#        'user_list': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
         'user': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
-#        'user_list': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
         'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
         'user_create': ['rest_framework.permissions.AllowAny'],
     },

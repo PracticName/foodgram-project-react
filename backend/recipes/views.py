@@ -1,20 +1,35 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import BooleanField, Value, Case, Count, When, Exists, F, Subquery, OuterRef, Q
+from django.db import transaction
+from django.db.models import Count, Exists, F, OuterRef, Subquery, Sum, Value
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.generics import get_object_or_404
-
 from djoser.views import UserViewSet
-from rest_framework.decorators import action
 from rest_framework import status, viewsets
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import IngredientFilter, RecipeFilter
-from .models import Ingredient, Tag, Follow, Recipe, Favorite, ShoppingCart
-from .pagination import CurrentPagination
+from .filters import RecipeFilter
+from .models import Ingredient, RecipeIngredient, Tag, Follow, Recipe, Favorite, ShoppingCart
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
-from .serializers import IngredientSerialiser, TagSerializer, SpecialUserSerializer, SpecialUserCreateSerializer, RecipeRSerializer, RecipeCUDSerializer, RecipeFavSerializer, FollowSerialiser
+from .serializers import (
+    FollowSerialiser,
+    IngredientSerialiser,
+    RecipeCUDSerializer,
+    RecipeFavSerializer,
+    RecipeRSerializer,
+    SpecialUserSerializer,
+    TagSerializer,
+)
+
+import io
+from django.http import FileResponse
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 
 User = get_user_model()
 
@@ -28,7 +43,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Ingredient.objects.all()
+#    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerialiser
     permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
@@ -43,7 +58,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SpecialUserViewSet(UserViewSet):
-#    pagination_class = CurrentPagination
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
@@ -55,7 +69,7 @@ class SpecialUserViewSet(UserViewSet):
                         following=OuterRef('id')
                     )
                 ),
-#                recipes_count=Count('recipes_author')
+                recipes_count=Count('recipes_author'),
             )
             return queryset
         return User.objects.annotate(
@@ -65,7 +79,6 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-#        permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, **kwargs):
         user = request.user
@@ -75,7 +88,7 @@ class SpecialUserViewSet(UserViewSet):
             serializer = FollowSerialiser(
                 author,
                 data=request.data,
-                context={'request': request}
+            #    context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
             Follow.objects.create(user=user, following=author)
@@ -91,27 +104,26 @@ class SpecialUserViewSet(UserViewSet):
 
     @action(
         detail=False,
-#        permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
         user = request.user
-#        author_recipes = user.recipes_author.all()
+        # author_recipes = user.recipes_author.all()
         queryset = self.get_queryset().filter(followers__user=user).annotate(
             recipes_count=Count('recipes_author'),
-#            recipes=Subquery(
-#                author_recipes.values('id', 'name', 'image', 'cooking_time')
-#            ),
+            #  recipes=Subquery(
+            #    author_recipes.values('id', 'name', 'image', 'cooking_time')
+            # ),
         )
         pages = self.paginate_queryset(queryset)
         serializer = FollowSerialiser(
-            pages, many=True, context={'request': request}
+            pages, many=True,
+#            context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
 
     @action(
         detail=False,
-        methods=['get',],
-        permission_classes=[IsAuthenticated,]
+        methods=['get',]
     )
     def me(self, request):
         queryset = self.get_queryset()
@@ -121,12 +133,9 @@ class SpecialUserViewSet(UserViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
-#    serializer_class = RecipeRSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
-#    pagination_class = CurrentPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -200,3 +209,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.create_model(ShoppingCart, request.user, pk)
         else:
             return self.delete_model(ShoppingCart, request.user, pk)
+
+    @action(
+        detail=False,
+    )
+    @transaction.atomic
+    def download_shopping_cart(self, request):
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
+        textob = c.beginText()
+        textob.setTextOrigin(inch, inch)
+        pdfmetrics.registerFont(TTFont(
+            'DejaVuSerif', 'DejaVuSerif.ttf', 'UTF-8')
+        )
+        textob.setFont('DejaVuSerif', 14)
+        ingredients = RecipeIngredient.objects.filter(
+            recipes__author=self.request.user
+        ).values(
+            'ingredients__name',
+            'ingredients__measurement_unit',
+        ).annotate(amount=Sum('amount'))
+        # ingredients = ingredients.
+        lines = []
+        for ingredient in ingredients:
+            lines.append(
+                f'{ingredient["ingredients__name"]}---{ingredient["amount"]}'
+            )
+
+        for line in lines:
+            textob.textLine(line)
+        c.drawText(textob)
+        c.showPage
+        c.save()
+        buf.seek(0)
+        return FileResponse(buf, as_attachment=True, filename='cart.pdf')
