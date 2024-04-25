@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from colorfield.fields import ColorField
 
@@ -57,6 +58,9 @@ class Tag(NameBaseModel):
         verbose_name_plural = 'Теги'
         ordering = ('name',)
 
+    def __str__(self):
+        return self.name[:settings.FIELDS_SHORT_NAME]
+
 
 class Ingredient(NameBaseModel):
     """Ингредиенты для рецепта."""
@@ -70,6 +74,10 @@ class Ingredient(NameBaseModel):
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
 
+    def __str__(self):
+        return (f'{self.name[:settings.FIELDS_SHORT_NAME]}, '
+                f'{self.measurement_unit}')
+
 
 class Follow(UserBaseModel):
     following = models.ForeignKey(
@@ -81,6 +89,11 @@ class Follow(UserBaseModel):
         verbose_name = 'Подписка на рецепт'
         verbose_name_plural = 'Подписка на рецепты'
         ordering = ('id',)
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'following'], name='unique_follow'
+            )
+        ]
 
 
 class Recipe(NameBaseModel):
@@ -119,7 +132,10 @@ class Recipe(NameBaseModel):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ('name',)
+        ordering = ('-id',)
+
+    def __str__(self):
+        return self.name[:settings.FIELDS_SHORT_NAME]
 
 
 class RecipeIngredient(models.Model):
@@ -150,6 +166,12 @@ class RecipeIngredient(models.Model):
         verbose_name_plural = 'Ингридеенты Рецепта'
         ordering = ('-id',)
 
+    def __str__(self):
+        return (f'{self.ingredients.name[:settings.FIELDS_SHORT_NAME]}, '
+                f'{self.ingredients.measurement_unit} - '
+                f'{self.amount}'
+                )
+
 
 class UserRecipeBaseModel(UserBaseModel):
     """Абстрактная модель с полем recipe.
@@ -175,6 +197,14 @@ class Favorite(UserRecipeBaseModel):
         verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
         ordering = ('-recipe',)
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} - {self.recipe}'
 
 
 class ShoppingCart(UserRecipeBaseModel):
@@ -185,3 +215,11 @@ class ShoppingCart(UserRecipeBaseModel):
         verbose_name = 'Корзина рецепта'
         verbose_name_plural = 'Корзина рецептов'
         ordering = ('-recipe',)
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_shoppingcart'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} - {self.recipe}'

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Subquery, Sum, Value
@@ -6,7 +7,7 @@ from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .filters import RecipeFilter
@@ -69,7 +70,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SpecialUserViewSet(UserViewSet):
-    # permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = LimitPagination
 
     def get_queryset(self):
@@ -96,7 +97,7 @@ class SpecialUserViewSet(UserViewSet):
     def subscribe(self, request, **kwargs):
         user = request.user
         author_id = self.kwargs.get('id')
-        author = get_object_or_404(User, id=author_id)
+        author = get_object_or_404(self.get_queryset(), id=author_id)
         if request.method == 'POST':
             serializer = FollowSerialiser(
                 author,
@@ -123,6 +124,7 @@ class SpecialUserViewSet(UserViewSet):
     def subscriptions(self, request):
         user = request.user
         # author_recipes = user.recipes_author.all()
+    
         queryset = self.get_queryset().filter(followers__user=user).annotate(
             recipes_count=Count('recipes_author'),
             #  recipes=Subquery(
@@ -144,7 +146,7 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=False,
         methods=['get',],
-        permission_classes=[IsAuthenticated,]
+        permission_classes=[AllowAny,]
     )
     def me(self, request):
         if request.user.is_anonymous:
@@ -159,7 +161,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = LimitPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-    permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
+    # permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
         user = self.request.user
@@ -181,6 +184,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
             is_in_shopping_cart=Value(False)
         )
 
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'retrive':
+            return (AllowAny(),)
+        if self.action == 'destroy' or self.action == 'update' or self.action == 'partial_update':
+            return (IsAuthorOrReadOnly(),)
+        return (IsAuthenticatedOrReadOnly(),)
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
@@ -201,12 +211,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.delete_model(Favorite, request.user, pk)
 
     def create_model(self, model, user, pk):
-        if model.objects.filter(user=user, recipe__id=pk).exists():
+        if not Recipe.objects.filter(id=pk).exists():
             return Response(
-                'Данный рецепт уже в Избранном.',
+                'Рецепт не существует.',
                 status=status.HTTP_400_BAD_REQUEST
             )
-        recipe = get_object_or_404(Recipe, id=pk)
+        if model.objects.filter(user=user, recipe__id=pk).exists():
+            return Response(
+                'Данный рецепт уже добавлен.',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        recipe = self.get_object()
         model.objects.create(user=user, recipe=recipe)
         serialiser = RecipeFavSerializer(recipe)
         return Response(
@@ -215,9 +230,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
     def delete_model(self, model, user, pk):
-        favorite = model.objects.filter(user=user, recipe__id=pk)
-        if favorite.exists():
-            favorite.delete()
+        recipe = self.get_object()
+        if not model.objects.filter(user=user, recipe=recipe):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        favorite_or_cart = model.objects.filter(user=user, recipe__id=pk)
+        if favorite_or_cart.exists():
+            favorite_or_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(
             'Рецепта не существует',
@@ -256,7 +274,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     recipes=recipe.recipe,
                     ingredients=ingredient
                 ).first().amount
-                dict_key = (f'{ingredient.name}')
+                dict_key = (f'{ingredient.name} -- '
+                            f'{ingredient.measurement_unit}')
                 if dict_key in lines:
                     lines[dict_key] += amount
                 else:

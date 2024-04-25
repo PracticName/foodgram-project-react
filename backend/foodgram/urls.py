@@ -48,7 +48,7 @@ urlpatterns = [
     path(
         'api/users/subscriptions/',
         SpecialUserViewSet.as_view({'get': 'subscriptions'}),
-        name='subscribe'),
+        name='subscriptions'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
