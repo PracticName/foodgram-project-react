@@ -141,6 +141,7 @@ DJOSER = {
         'user': ['recipes.permissions.CurrentUserOrAdminOrReaOnly'],
         'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
         'user_create': ['rest_framework.permissions.AllowAny'],
+        'token_create': ['rest_framework.permissions.AllowAny'],
     },
 }
 

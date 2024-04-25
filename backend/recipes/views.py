@@ -10,7 +10,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import RecipeFilter
-from .models import Ingredient, RecipeIngredient, Tag, Follow, Recipe, Favorite, ShoppingCart
+from .models import (
+    Favorite,
+    Follow,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag,
+)
+from .pagination import LimitPagination
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (
     FollowSerialiser,
@@ -37,28 +46,31 @@ User = get_user_model()
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+#    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
-    http_method_names = ['get',]
+    http_method_names = ['get', 'head', 'options']
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 #    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerialiser
-    permission_classes = (IsAdminOrReadOnly,)
+#    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
-    http_method_names = ['get',]
+    http_method_names = ['get', 'head', 'options']
 #    filter_backends = (DjangoFilterBackend,)
 #    filterset_class = IngredientFilter
 
     def get_queryset(self):
-        return Ingredient.objects.filter(
-            name__startswith=self.request.query_params.get('name', None)
-        )
+        if self.request.query_params.get('name'):
+            return Ingredient.objects.filter(
+                name__startswith=self.request.query_params.get('name')
+            )
+        return Ingredient.objects.all()
 
 
 class SpecialUserViewSet(UserViewSet):
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
+    pagination_class = LimitPagination
 
     def get_queryset(self):
         if self.get_instance().is_authenticated:
@@ -79,6 +91,7 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated,]
     )
     def subscribe(self, request, **kwargs):
         user = request.user
@@ -88,7 +101,7 @@ class SpecialUserViewSet(UserViewSet):
             serializer = FollowSerialiser(
                 author,
                 data=request.data,
-            #    context={'request': request}
+                context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
             Follow.objects.create(user=user, following=author)
@@ -104,6 +117,8 @@ class SpecialUserViewSet(UserViewSet):
 
     @action(
         detail=False,
+        permission_classes=[IsAuthenticated,],
+        pagination_class=[LimitPagination,]
     )
     def subscriptions(self, request):
         user = request.user
@@ -114,18 +129,26 @@ class SpecialUserViewSet(UserViewSet):
             #    author_recipes.values('id', 'name', 'image', 'cooking_time')
             # ),
         )
+        '''limit = request.query_params.get('recipes_limit')
+        if limit:
+            queryset = queryset[:int(limit)]
+        serializer = FollowSerialiser(queryset, many=True, context={'request': request})
+        return Response(serializer.data)'''
         pages = self.paginate_queryset(queryset)
         serializer = FollowSerialiser(
             pages, many=True,
-#            context={'request': request}
+            context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
 
     @action(
         detail=False,
-        methods=['get',]
+        methods=['get',],
+        permission_classes=[IsAuthenticated,]
     )
     def me(self, request):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         queryset = self.get_queryset()
         me_user = get_object_or_404(queryset, pk=request.user.id)
         serializer = SpecialUserSerializer(me_user)
@@ -133,6 +156,7 @@ class SpecialUserViewSet(UserViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    pagination_class = LimitPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
@@ -151,6 +175,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             )
             return queryset
+
         return Recipe.objects.annotate(
             is_favorited=Value(False),
             is_in_shopping_cart=Value(False)
@@ -196,7 +221,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(
             'Рецепта не существует',
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_404_NOT_FOUND
         )
 
     @action(
@@ -212,34 +237,52 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
+        permission_classes=[IsAuthenticated]
     )
-    @transaction.atomic
     def download_shopping_cart(self, request):
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
         textob = c.beginText()
         textob.setTextOrigin(inch, inch)
         pdfmetrics.registerFont(TTFont(
-            'DejaVuSerif', 'DejaVuSerif.ttf', 'UTF-8')
+            'DejaVuSerif', 'DejaVuSerif.ttf')
         )
         textob.setFont('DejaVuSerif', 14)
-        ingredients = RecipeIngredient.objects.filter(
+        recipes = ShoppingCart.objects.filter(user=self.request.user)
+        lines = {}
+        for recipe in recipes:
+            for ingredient in recipe.recipe.ingredients.all():
+                amount = RecipeIngredient.objects.filter(
+                    recipes=recipe.recipe,
+                    ingredients=ingredient
+                ).first().amount
+                dict_key = (f'{ingredient.name}')
+                if dict_key in lines:
+                    lines[dict_key] += amount
+                else:
+                    lines[dict_key] = amount
+        '''ingredients = RecipeIngredient.objects.filter(
             recipes__author=self.request.user
         ).values(
             'ingredients__name',
             'ingredients__measurement_unit',
-        ).annotate(amount=Sum('amount'))
-        # ingredients = ingredients.
-        lines = []
+        ).annotate(amount=F('amount'))
+        lines = {}
         for ingredient in ingredients:
-            lines.append(
-                f'{ingredient["ingredients__name"]}---{ingredient["amount"]}'
-            )
-
-        for line in lines:
-            textob.textLine(line)
+            amount = ingredient['amount']
+            dict_key = (f'{ingredient["ingredients__name"]}')
+            if dict_key in lines:
+                lines[dict_key] += amount
+            else:
+                lines[dict_key] = amount'''
+        for key, value in lines.items():
+            textob.textLine(f'{key}--{value}')
         c.drawText(textob)
         c.showPage
         c.save()
         buf.seek(0)
-        return FileResponse(buf, as_attachment=True, filename='cart.pdf')
+        return FileResponse(
+            buf,
+            as_attachment=True,
+            filename='cart.pdf',
+        )

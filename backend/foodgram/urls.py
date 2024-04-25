@@ -17,8 +17,7 @@ router.register(r'ingredients', IngredientViewSet, basename='ingredients')
 router.register(r'recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
+    path('api/auth/', include('djoser.urls.authtoken')),
     path(
         'api/users/', SpecialUserViewSet.as_view(
             {'get': 'list', 'post': 'create'}
@@ -36,10 +35,9 @@ urlpatterns = [
     ),
     path(
         'api/users/set_password/', SpecialUserViewSet.as_view(
-            {'get': 'set_password'}
+            {'post': 'set_password'}
         ), name='set_password'
     ),
-    path('api/auth/', include('djoser.urls.authtoken')),
     path(
         'api/users/<int:id>/subscribe/',
         SpecialUserViewSet.as_view(
@@ -51,6 +49,8 @@ urlpatterns = [
         'api/users/subscriptions/',
         SpecialUserViewSet.as_view({'get': 'subscriptions'}),
         name='subscribe'),
+    path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
 ]
 
 if settings.DEBUG:

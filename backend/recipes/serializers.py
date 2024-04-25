@@ -6,6 +6,10 @@ from django.db.models import F
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, Follow
 
@@ -53,9 +57,17 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class SpecialUserCreateSerializer(UserCreateSerializer):
     """Сериализатор для создания пользователя."""
+
     class Meta(UserCreateSerializer.Meta):
         model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'password')
+        fields = (
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'password'
+        )
 
 
 class SpecialUserSerializer(UserSerializer):
@@ -132,6 +144,8 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
     author = SpecialUserSerializer(default=serializers.CurrentUserDefault())
     ingredients = RecipeIngredientSerializer(many=True)
     image = Base64ImageField()
+    is_favorited = serializers.SerializerMethodField(read_only=True)
+    is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Recipe
@@ -140,12 +154,52 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
             'tags',
             'author',
             'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
             'cooking_time'
         )
         read_only_fields = ('author',)
+
+    def validate_ingredients(self, value):
+        if not value:
+            raise ValidationError(
+                'Пустое поле ingredients',
+                status.HTTP_400_BAD_REQUEST
+            )
+        ingredients = []
+        for ingredient in value:
+            obj = Ingredient.objects.get(id=ingredient['id'])
+            if not obj:
+                raise ValidationError(
+                    detail='Ингридент не существует',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            if obj in ingredients:
+                raise ValidationError(
+                    detail=f'Ингридент {obj} можно добавить только один раз',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            ingredients.append(obj)
+        return value
+
+    def validate_tags(self, value):
+        if not value:
+            raise ValidationError(
+                detail='Пустое поле tags',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        tags = []
+        for tag in value:
+            if tag in tags:
+                raise ValidationError(
+                    detail=f'Тег {tag} можно добавить только один раз',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            tags.append(tag)
+        return value
 
     @transaction.atomic
     def create_recipeingredient(self, ingredients, recipe):
@@ -164,6 +218,9 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
         self.create_recipeingredient(ingredients=ingredients, recipe=recipe)
+        recipe.is_favorited = False
+        recipe.is_in_shopping_cart = False
+        recipe.author.is_subscribed = False
         return recipe
 
     @transaction.atomic
@@ -178,7 +235,7 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def to_representation(self, instance):
+    def to_representation(self, instance):        
         request = self.context.get('request')
         context = {'request': request}
         return RecipeRSerializer(instance, context=context).data
@@ -227,3 +284,18 @@ class FollowSerialiser(SpecialUserSerializer):
         recipes = obj.recipes_author.all()
         serializer = RecipeFavSerializer(recipes, many=True, read_only=True)
         return serializer.data'''
+
+    def validate(self, attrs):
+        following = self.instance
+        user = self.context.get('request').user
+        if following == user:
+            raise ValidationError(
+                'Нельзя подписаться на себя!',
+                status.HTTP_400_BAD_REQUEST
+            )
+        if Follow.objects.filter(following=following, user=user):
+            raise ValidationError(
+                'Нельзя подписаться на одного пользователя дважды!',
+                status.HTTP_400_BAD_REQUEST
+            )
+        return attrs
