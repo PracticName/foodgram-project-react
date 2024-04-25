@@ -8,13 +8,10 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import get_object_or_404
-from rest_framework.response import Response
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, Follow
 
 User = get_user_model()
-
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тега рецепа."""
@@ -39,20 +36,6 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'amount')
-
-
-'''class RecipeIngredientRSerializer(serializers.ModelSerializer):
-    """Сериализатор."""
-    name = serializers.CharField(read_only=True)
-    measurement_unit = serializers.CharField(read_only=True)
-    amount = RecipeIngredientSerializer(read_only=True)
-    id = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = RecipeIngredient
-#        fields = ('ingredients', 'amount')
-        fields = ('id', 'name', 'measurement_unit', 'amount')
-#        depth = 1'''
 
 
 class SpecialUserCreateSerializer(UserCreateSerializer):
@@ -163,22 +146,35 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('author',)
 
+    def validate(self, attrs):
+        if 'tags' not in attrs:
+            raise serializers.ValidationError(
+                'Отсутствует поле tags',
+                status.HTTP_400_BAD_REQUEST
+            )
+        if 'ingredients' not in attrs:
+            raise serializers.ValidationError(
+                'Отсутствует поле ingredients',
+                status.HTTP_400_BAD_REQUEST
+            )
+        return super().validate(attrs)
+
     def validate_ingredients(self, value):
         if not value:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 'Пустое поле ingredients',
                 status.HTTP_400_BAD_REQUEST
             )
         ingredients = []
         for ingredient in value:
-            obj = Ingredient.objects.get(id=ingredient['id'])
-            if not obj:
-                raise ValidationError(
+            if not Ingredient.objects.filter(id=ingredient['id']).exists():
+                raise serializers.ValidationError(
                     detail='Ингридент не существует',
                     code=status.HTTP_400_BAD_REQUEST
                 )
+            obj = Ingredient.objects.get(id=ingredient['id'])
             if obj in ingredients:
-                raise ValidationError(
+                raise serializers.ValidationError(
                     detail=f'Ингридент {obj} можно добавить только один раз',
                     code=status.HTTP_400_BAD_REQUEST
                 )
@@ -187,14 +183,14 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
 
     def validate_tags(self, value):
         if not value:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 detail='Пустое поле tags',
                 code=status.HTTP_400_BAD_REQUEST
             )
         tags = []
         for tag in value:
             if tag in tags:
-                raise ValidationError(
+                raise serializers.ValidationError(
                     detail=f'Тег {tag} можно добавить только один раз',
                     code=status.HTTP_400_BAD_REQUEST
                 )

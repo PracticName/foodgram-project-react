@@ -7,7 +7,11 @@ from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 
 from .filters import RecipeFilter
@@ -21,7 +25,7 @@ from .models import (
     Tag,
 )
 from .pagination import LimitPagination
-from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     FollowSerialiser,
     IngredientSerialiser,
@@ -47,19 +51,14 @@ User = get_user_model()
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-#    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
     http_method_names = ['get', 'head', 'options']
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-#    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerialiser
-#    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
     http_method_names = ['get', 'head', 'options']
-#    filter_backends = (DjangoFilterBackend,)
-#    filterset_class = IngredientFilter
 
     def get_queryset(self):
         if self.request.query_params.get('name'):
@@ -92,7 +91,8 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated,]
+        permission_classes=[IsAuthenticated,],
+        pagination_class=[LimitPagination,]
     )
     def subscribe(self, request, **kwargs):
         user = request.user
@@ -108,8 +108,9 @@ class SpecialUserViewSet(UserViewSet):
             Follow.objects.create(user=user, following=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
-            subscription = get_object_or_404(
-                Follow,
+            if not Follow.objects.filter(user=user, following=author).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            subscription = Follow.objects.get(
                 user=user,
                 following=author
             )
@@ -125,12 +126,10 @@ class SpecialUserViewSet(UserViewSet):
         user = request.user
         # author_recipes = user.recipes_author.all()
     
-        queryset = self.get_queryset().filter(followers__user=user).annotate(
-            recipes_count=Count('recipes_author'),
+        queryset = self.get_queryset().filter(followers__user=user)
             #  recipes=Subquery(
             #    author_recipes.values('id', 'name', 'image', 'cooking_time')
             # ),
-        )
         '''limit = request.query_params.get('recipes_limit')
         if limit:
             queryset = queryset[:int(limit)]
@@ -161,7 +160,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = LimitPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-    # permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
@@ -257,6 +255,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=False,
         permission_classes=[IsAuthenticated]
     )
+    @transaction.atomic
     def download_shopping_cart(self, request):
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
