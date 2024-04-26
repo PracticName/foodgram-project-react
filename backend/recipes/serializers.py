@@ -2,7 +2,6 @@ import base64
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.db.models import F
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
@@ -12,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, Follow
 
 User = get_user_model()
+
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тега рецепа."""
@@ -23,15 +23,35 @@ class TagSerializer(serializers.ModelSerializer):
 
 class IngredientSerialiser(serializers.ModelSerializer):
     """Сериализатор для ингредиентов рецепта."""
+
     class Meta:
         model = Ingredient
         fields = ('id', 'name', 'measurement_unit')
 
 
+class RecipeIngredientRSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиента с полем amount рецепта.
+       На чтение.
+    """
+    ingredients = IngredientSerialiser(read_only=True)
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('ingredients', 'amount')
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ingredients = ret.pop('ingredients')
+        for key in ingredients:
+            ret[key] = ingredients[key]
+        return ret
+
+
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    """Сериализатор для ингредиента с полем amount рецепта."""
+    """Сериализатор для ингредиента с полем amount рецепта.
+       На запись.
+    """
     id = serializers.IntegerField(write_only=True)
-#    id = serializers.PrimaryKeyRelatedField(write_only=True)
 
     class Meta:
         model = RecipeIngredient
@@ -84,8 +104,7 @@ class RecipeRSerializer(serializers.ModelSerializer):
     """Сериализатор рецепта только на чтение."""
     tags = TagSerializer(many=True)
     author = SpecialUserSerializer(default=serializers.CurrentUserDefault())
-    ingredients = serializers.SerializerMethodField()
-#    ingredients = RecipeIngredientSerializer(many=True, source='reciepes')
+    ingredients = RecipeIngredientRSerializer(many=True, source='reciepes')
 
     image = Base64ImageField()
     is_favorited = serializers.BooleanField(read_only=True)
@@ -106,16 +125,6 @@ class RecipeRSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
         read_only_fields = ('tags', 'author')
-
-    def get_ingredients(self, obj):
-        recipe = obj
-        ingredients = recipe.ingredients.values(
-            'id',
-            'name',
-            'measurement_unit',
-            amount=F('ingredients__amount')
-        )
-        return ingredients
 
 
 class RecipeCUDSerializer(serializers.ModelSerializer):
@@ -231,7 +240,7 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def to_representation(self, instance):        
+    def to_representation(self, instance):
         request = self.context.get('request')
         context = {'request': request}
         return RecipeRSerializer(instance, context=context).data
@@ -253,12 +262,8 @@ class RecipeFavSerializer(serializers.ModelSerializer):
 
 class FollowSerialiser(SpecialUserSerializer):
     """Сериализатор подписок."""
-#    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(read_only=True)
-    recipes = RecipeFavSerializer(
-        many=True,
-        source='recipes_author',
-        read_only=True)
+    recipes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -276,10 +281,14 @@ class FollowSerialiser(SpecialUserSerializer):
             'email', 'username', 'first_name', 'last_name', 'is_subscribed',
         )
 
-    '''def get_recipes(self, obj):
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit = request.query_params.get('recipes_limit')
         recipes = obj.recipes_author.all()
+        if limit:
+            recipes = recipes[:int(limit)]
         serializer = RecipeFavSerializer(recipes, many=True, read_only=True)
-        return serializer.data'''
+        return serializer.data
 
     def validate(self, attrs):
         following = self.instance

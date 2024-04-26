@@ -1,7 +1,6 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, Exists, F, OuterRef, Subquery, Sum, Value
+from django.db.models import Count, Exists, OuterRef, Value
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
@@ -9,7 +8,6 @@ from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
     AllowAny,
-    IsAuthenticated,
     IsAuthenticatedOrReadOnly
 )
 from rest_framework.response import Response
@@ -91,8 +89,6 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated,],
-        pagination_class=[LimitPagination,]
     )
     def subscribe(self, request, **kwargs):
         user = request.user
@@ -119,22 +115,10 @@ class SpecialUserViewSet(UserViewSet):
 
     @action(
         detail=False,
-        permission_classes=[IsAuthenticated,],
-        pagination_class=[LimitPagination,]
     )
     def subscriptions(self, request):
         user = request.user
-        # author_recipes = user.recipes_author.all()
-    
         queryset = self.get_queryset().filter(followers__user=user)
-            #  recipes=Subquery(
-            #    author_recipes.values('id', 'name', 'image', 'cooking_time')
-            # ),
-        '''limit = request.query_params.get('recipes_limit')
-        if limit:
-            queryset = queryset[:int(limit)]
-        serializer = FollowSerialiser(queryset, many=True, context={'request': request})
-        return Response(serializer.data)'''
         pages = self.paginate_queryset(queryset)
         serializer = FollowSerialiser(
             pages, many=True,
@@ -145,7 +129,6 @@ class SpecialUserViewSet(UserViewSet):
     @action(
         detail=False,
         methods=['get',],
-        permission_classes=[AllowAny,]
     )
     def me(self, request):
         if request.user.is_anonymous:
@@ -185,7 +168,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'list' or self.action == 'retrive':
             return (AllowAny(),)
-        if self.action == 'destroy' or self.action == 'update' or self.action == 'partial_update':
+        if (self.action == 'destroy'
+                or self.action == 'update'
+                or self.action == 'partial_update'):
             return (IsAuthorOrReadOnly(),)
         return (IsAuthenticatedOrReadOnly(),)
 
@@ -200,13 +185,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk):
         if request.method == 'POST':
             return self.create_model(Favorite, request.user, pk)
-        else:
-            return self.delete_model(Favorite, request.user, pk)
+        return self.delete_model(Favorite, request.user, pk)
 
     def create_model(self, model, user, pk):
         if not Recipe.objects.filter(id=pk).exists():
@@ -243,17 +226,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk):
         if request.method == 'POST':
             return self.create_model(ShoppingCart, request.user, pk)
-        else:
-            return self.delete_model(ShoppingCart, request.user, pk)
+        return self.delete_model(ShoppingCart, request.user, pk)
 
     @action(
         detail=False,
-        permission_classes=[IsAuthenticated]
     )
     @transaction.atomic
     def download_shopping_cart(self, request):
@@ -279,20 +259,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     lines[dict_key] += amount
                 else:
                     lines[dict_key] = amount
-        '''ingredients = RecipeIngredient.objects.filter(
-            recipes__author=self.request.user
-        ).values(
-            'ingredients__name',
-            'ingredients__measurement_unit',
-        ).annotate(amount=F('amount'))
-        lines = {}
-        for ingredient in ingredients:
-            amount = ingredient['amount']
-            dict_key = (f'{ingredient["ingredients__name"]}')
-            if dict_key in lines:
-                lines[dict_key] += amount
-            else:
-                lines[dict_key] = amount'''
         for key, value in lines.items():
             textob.textLine(f'{key}--{value}')
         c.drawText(textob)
