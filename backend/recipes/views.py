@@ -1,47 +1,31 @@
+import io
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Value
+from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import (
-    AllowAny,
-    IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .filters import RecipeFilter
-from .models import (
-    Favorite,
-    Follow,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    ShoppingCart,
-    Tag,
-)
+from .models import (Favorite, Follow, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
 from .pagination import LimitPagination
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (
-    FollowSerialiser,
-    IngredientSerialiser,
-    RecipeCUDSerializer,
-    RecipeFavSerializer,
-    RecipeRSerializer,
-    SpecialUserSerializer,
-    TagSerializer,
-)
-
-import io
-from django.http import FileResponse
-from reportlab.lib.units import inch
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-
+from .serializers import (FollowSerialiser, IngredientSerialiser,
+                          RecipeCUDSerializer, RecipeFavSerializer,
+                          RecipeRSerializer, SpecialUserSerializer,
+                          TagSerializer)
 
 User = get_user_model()
 

@@ -2,14 +2,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from recipes.views import (IngredientViewSet, RecipeViewSet,
+                           SpecialUserViewSet, TagViewSet)
 from rest_framework import routers
-
-from recipes.views import (
-    IngredientViewSet,
-    RecipeViewSet,
-    SpecialUserViewSet,
-    TagViewSet,
-)
 
 router = routers.DefaultRouter()
 router.register(r'tags', TagViewSet, basename='tags')
