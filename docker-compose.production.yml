@@ -33,7 +33,9 @@ services:
       - 8090:80
     volumes:      
       - ./frontend/build:/usr/share/nginx/html/
-      - ./docs/:/usr/share/nginx/html/api/docs/
+#      - ./docs/:/usr/share/nginx/html/api/docs/
+      - ./docs/redoc.html:/usr/share/nginx/html/api/docs/redoc.html
+      - ./docs/openapi-shema.yaml:/usr/share/nginx/html/api/docs/openapi-shema.yml
       - static:/var/html/static/
       - media:/var/html/media/
       - redoc:/usr/share/nginx/html/api/docs/
