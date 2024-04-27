@@ -66,9 +66,7 @@ class SpecialUserViewSet(UserViewSet):
                 recipes_count=Count('recipes_author'),
             )
             return queryset
-        return User.objects.annotate(
-                is_subscribed=Value(False)
-            )
+        return User.objects.annotate(is_subscribed=Value(False))
 
     @action(
         detail=True,

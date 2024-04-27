@@ -210,8 +210,7 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
             [RecipeIngredient(
                 ingredients=Ingredient.objects.get(id=ingredient['id']),
                 recipes=recipe,
-                amount=ingredient['amount']
-                ) for ingredient in ingredients]
+                amount=ingredient['amount']) for ingredient in ingredients]
         )
 
     @transaction.atomic
