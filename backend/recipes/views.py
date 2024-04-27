@@ -110,7 +110,7 @@ class SpecialUserViewSet(UserViewSet):
 
     @action(
         detail=False,
-        methods=['get',],
+        methods=['get', ],
     )
     def me(self, request):
         if request.user.is_anonymous:

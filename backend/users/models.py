@@ -17,7 +17,7 @@ class MyUser(AbstractUser):
         unique=True,
         db_index=True,
         verbose_name='Уникальный юзернейм',
-        validators=[ASCIIUsernameValidator(),]
+        validators=[ASCIIUsernameValidator(), ]
     )
     first_name = models.CharField(
         max_length=settings.LETTERS_IN_USERS_FIELD,
