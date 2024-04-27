@@ -61,7 +61,6 @@ jobs:
           context: ./backend/
           push: true
           tags: alexeyageev/foodgram_backend:latest
-#
 #  frontend_tests:
 #    runs-on: ubuntu-latest
 
@@ -139,7 +138,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         source: "docker-compose.production.yml"
-        target: "foodgram/"
+        target: "foodgram"
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
       with:
