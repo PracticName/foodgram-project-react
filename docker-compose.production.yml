@@ -3,7 +3,6 @@ volumes:
   pg_data:
   static:
   media:
-#  redoc:
 services:
   db:
     image: postgres:13
@@ -17,7 +16,6 @@ services:
     volumes:
       - static:/backend_static/
       - media:/app/media/recipes/images/
-#      - redoc:/app/api/docs/
     depends_on:
       - db
 
@@ -36,6 +34,4 @@ services:
       - ./docs/:/usr/share/nginx/html/api/docs/
       - static:/var/html/static/
       - media:/var/html/media/
-#      - redoc:/usr/share/nginx/html/api/docs/
-#      - ./nginx.conf:/etc/nginx/conf.d/default.conf 
   
