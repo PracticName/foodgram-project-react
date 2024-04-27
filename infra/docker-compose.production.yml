@@ -22,15 +22,17 @@ services:
   frontend:
     image: alexeyageev/foodgram_frontend
     env_file: .env
-    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static:/frontend_static/
+      - ./frontend/:/app/result_build/
   nginx:
     image: alexeyageev/foodgram_gateway
     env_file: .env
     ports:
       - 8090:80
     volumes:
+      - .infra/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/build:/usr/share/nginx/html/
+      - ./docs/:/usr/share/nginx/html/api/docs/
       - static:/var/html/static/
       - media:/var/html/media/
   
