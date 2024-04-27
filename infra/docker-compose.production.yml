@@ -1,4 +1,4 @@
-version: '3.3'
+version: '2.25.0'
 volumes:
   pg_data:
   static:
@@ -24,7 +24,8 @@ services:
     volumes:
       - ./frontend/:/app/result_build/
   nginx:
-    image: nginx:1.19.3
+    image: alexeyageev/foodgram_gateway
+    env_file: .env
     ports:
       - 8090:80
     volumes:
