@@ -120,7 +120,6 @@ jobs:
           context: ./infra/
           push: true
           tags: alexeyageev/foodgram_gateway:latest
-#          tags: nginx:1.19.3
   deploy:
     
     runs-on: ubuntu-latest
