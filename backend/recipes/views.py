@@ -1,5 +1,6 @@
 import io
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Value
@@ -226,8 +227,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         pdfmetrics.registerFont(TTFont(
             'DejaVuSerif', 'DejaVuSerif.ttf')
         )
-        textob.setFont('DejaVuSerif', 14)
-        recipes = ShoppingCart.objects.filter(user=self.request.user)
+        textob.setFont('DejaVuSerif', settings.FONT_SIZE)
+    #    recipes = ShoppingCart.objects.filter(user=self.request.user)
+        user = self.request.user
+        recipes = user.recipes_shoppingcart_related.all()
         lines = {}
         for recipe in recipes:
             for ingredient in recipe.recipe.ingredients.all():
