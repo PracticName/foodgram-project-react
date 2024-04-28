@@ -286,8 +286,6 @@ class FollowSerialiser(SpecialUserSerializer):
         )
 
     def get_recipes(self, obj):
-        '''request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')'''
         limit = self.context.get('recipes_limit')
         recipes = obj.recipes_author.all()
         if limit:

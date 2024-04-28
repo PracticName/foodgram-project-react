@@ -228,25 +228,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'DejaVuSerif', 'DejaVuSerif.ttf')
         )
         textob.setFont('DejaVuSerif', settings.FONT_SIZE)
-    #    recipes = ShoppingCart.objects.filter(user=self.request.user)
         user = self.request.user
-        # recipes = user.recipes_shoppingcart_related.all()
         lines = {}
-        '''for recipe in recipes:
-            for ingredient in recipe.recipe.ingredients.all():
-                amount = RecipeIngredient.objects.filter(
-                    recipes=recipe.recipe,
-                    ingredients=ingredient
-                ).first().amount
-                dict_key = (f'{ingredient.name} -- '
-                            f'{ingredient.measurement_unit}')
-                if dict_key in lines:
-                    lines[dict_key] += amount
-                else:
-                    lines[dict_key] = amount'''
         recipes_cart = user.recipes_shoppingcart_related.all()
         ingredients_cart = RecipeIngredient.objects.filter(
-            recipes=Subquery(recipes_cart)
+            recipes=Subquery(recipes_cart.values('id'))
         ).select_related('ingredients')
         for ingredient in ingredients_cart:
             amount = ingredient.amount
