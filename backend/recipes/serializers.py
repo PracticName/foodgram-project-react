@@ -139,8 +139,6 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
     author = SpecialUserSerializer(default=serializers.CurrentUserDefault())
     ingredients = RecipeIngredientSerializer(many=True)
     image = Base64ImageField()
-    is_favorited = serializers.SerializerMethodField(read_only=True)
-    is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
     cooking_time = serializers.IntegerField(
         min_value=settings.MIN_VALUE_SCORE,
         max_value=settings.MAX_VALUE_SCORE
