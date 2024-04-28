@@ -303,7 +303,7 @@ class FollowSerialiser(SpecialUserSerializer):
                 'Нельзя подписаться на себя!',
                 status.HTTP_400_BAD_REQUEST
             )
-        if Follow.objects.filter(following=following, user=user):
+        if user.recipes_follow_related.all():
             raise ValidationError(
                 'Нельзя подписаться на одного пользователя дважды!',
                 status.HTTP_400_BAD_REQUEST
