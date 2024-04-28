@@ -1,7 +1,8 @@
 from colorfield.fields import ColorField
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    RegexValidator)
 from django.db import models
 from django.db.models import UniqueConstraint
 
@@ -93,6 +94,9 @@ class Follow(UserBaseModel):
             )
         ]
 
+    def __str__(self):
+        return f'{self.user} - {self.following}'
+
 
 class Recipe(NameBaseModel):
     """Рецепты пользователя."""
@@ -103,7 +107,12 @@ class Recipe(NameBaseModel):
             MinValueValidator(
                 limit_value=settings.MIN_VALUE_SCORE,
                 message=('Время приготовления должно быть '
-                         f'меньше {settings.MIN_VALUE_SCORE} минуты')
+                         f'больше {settings.MIN_VALUE_SCORE} минуты.')
+            ),
+            MaxValueValidator(
+                limit_value=settings.MAX_VALUE_SCORE,
+                message=('Время приготовления должно быть '
+                         f'меньше {settings.MAX_VALUE_SCORE} минут.')
             )
         ]
     )
@@ -145,6 +154,11 @@ class RecipeIngredient(models.Model):
                 limit_value=settings.MIN_VALUE_SCORE,
                 message=('Количество не должно быть '
                          f'меньше {settings.MIN_VALUE_SCORE} ед.')
+            ),
+            MaxValueValidator(
+                limit_value=settings.MAX_VALUE_SCORE,
+                message=('Количество не должно быть '
+                         f'больше {settings.MAX_VALUE_SCORE} ед.')
             )
         ]
     )

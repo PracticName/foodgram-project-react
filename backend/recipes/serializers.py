@@ -1,5 +1,6 @@
 import base64
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -50,6 +51,10 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
        На запись.
     """
     id = serializers.IntegerField(write_only=True)
+    amount = serializers.IntegerField(
+        min_value=settings.MIN_VALUE_SCORE,
+        max_value=settings.MAX_VALUE_SCORE
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -136,6 +141,10 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
+    cooking_time = serializers.IntegerField(
+        min_value=settings.MIN_VALUE_SCORE,
+        max_value=settings.MAX_VALUE_SCORE
+    )
 
     class Meta:
         model = Recipe
@@ -279,8 +288,9 @@ class FollowSerialiser(SpecialUserSerializer):
         )
 
     def get_recipes(self, obj):
-        request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
+        '''request = self.context.get('request')
+        limit = request.query_params.get('recipes_limit')'''
+        limit = self.context.get('recipes_limit')
         recipes = obj.recipes_author.all()
         if limit:
             recipes = recipes[:int(limit)]
