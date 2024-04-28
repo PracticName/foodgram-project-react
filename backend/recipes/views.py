@@ -86,7 +86,7 @@ class SpecialUserViewSet(UserViewSet):
             Follow.objects.create(user=user, following=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
-            if not user.recipes_follow_related.all():
+            if author not in user.recipes_follow_related.all():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
             subscription = Follow.objects.get(
                 user=user,
