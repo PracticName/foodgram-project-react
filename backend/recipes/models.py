@@ -18,6 +18,10 @@ class NameBaseModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name[:settings.FIELDS_SHORT_NAME]
 
 
 class UserBaseModel(models.Model):
@@ -30,6 +34,10 @@ class UserBaseModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('user',)
+
+    def __str__(self):
+        return self.user.username[:settings.FIELDS_SHORT_NAME]
 
 
 class Tag(NameBaseModel):
@@ -196,6 +204,10 @@ class UserRecipeBaseModel(UserBaseModel):
 
     class Meta:
         abstract = True
+        ordering = ('-recipe',)
+
+    def __str__(self):
+        return self.recipe.name[:settings.FIELDS_SHORT_NAME]
 
 
 class Favorite(UserRecipeBaseModel):
