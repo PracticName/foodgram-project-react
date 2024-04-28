@@ -230,7 +230,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         textob.setFont('DejaVuSerif', settings.FONT_SIZE)
     #    recipes = ShoppingCart.objects.filter(user=self.request.user)
         user = self.request.user
-        #recipes = user.recipes_shoppingcart_related.all()
+        # recipes = user.recipes_shoppingcart_related.all()
         lines = {}
         '''for recipe in recipes:
             for ingredient in recipe.recipe.ingredients.all():
