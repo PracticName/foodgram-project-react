@@ -297,7 +297,7 @@ class FollowSerialiser(SpecialUserSerializer):
 
     def validate(self, attrs):
         following = self.instance
-        user = self.context.get('request').user
+        user = self.context.get('id')
         if following == user:
             raise ValidationError(
                 'Нельзя подписаться на себя!',
