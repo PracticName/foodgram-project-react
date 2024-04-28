@@ -3,7 +3,7 @@ import io
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Value
+from django.db.models import Count, Exists, OuterRef, Subquery, Value
 from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -230,9 +230,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         textob.setFont('DejaVuSerif', settings.FONT_SIZE)
     #    recipes = ShoppingCart.objects.filter(user=self.request.user)
         user = self.request.user
-        recipes = user.recipes_shoppingcart_related.all()
+        #recipes = user.recipes_shoppingcart_related.all()
         lines = {}
-        for recipe in recipes:
+        '''for recipe in recipes:
             for ingredient in recipe.recipe.ingredients.all():
                 amount = RecipeIngredient.objects.filter(
                     recipes=recipe.recipe,
@@ -243,7 +243,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 if dict_key in lines:
                     lines[dict_key] += amount
                 else:
-                    lines[dict_key] = amount
+                    lines[dict_key] = amount'''
+        recipes_cart = user.recipes_shoppingcart_related.all()
+        ingredients_cart = RecipeIngredient.objects.filter(
+            recipes=Subquery(recipes_cart)
+        ).select_related('ingredients')
+        for ingredient in ingredients_cart:
+            amount = ingredient.amount
+            dick_key = (f'{ingredient.ingredients.name} -- '
+                        f'{ingredient.ingredients.measurement_unit}')
+            if dick_key in lines:
+                lines[dick_key] += amount
+            else:
+                lines[dick_key] = amount
         for key, value in lines.items():
             textob.textLine(f'{key}--{value}')
         c.drawText(textob)
