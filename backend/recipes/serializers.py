@@ -201,14 +201,14 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
                 detail='Пустое поле tags',
                 code=status.HTTP_400_BAD_REQUEST
             )
-        tags = []
+        tags = {}
         for tag in value:
             if tag in tags:
                 raise serializers.ValidationError(
                     detail=f'Тег {tag} можно добавить только один раз',
                     code=status.HTTP_400_BAD_REQUEST
                 )
-            tags.append(tag)
+            tags.add(tag)
         return value
 
     @transaction.atomic
