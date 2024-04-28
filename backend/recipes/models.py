@@ -19,9 +19,6 @@ class NameBaseModel(models.Model):
     class Meta:
         abstract = True
 
-    def __str__(self):
-        return self.name[:settings.FIELDS_SHORT_NAME]
-
 
 class UserBaseModel(models.Model):
     """Абстрактная модель с полем user."""
@@ -95,7 +92,7 @@ class Follow(UserBaseModel):
         ]
 
     def __str__(self):
-        return f'{self.user} - {self.following}'
+        return f'Подписка {self.user.username} на {self.following.username}'
 
 
 class Recipe(NameBaseModel):
@@ -216,7 +213,8 @@ class Favorite(UserRecipeBaseModel):
         ]
 
     def __str__(self):
-        return f'{self.user} - {self.recipe}'
+        return (f'{self.user.username[:settings.FIELDS_SHORT_NAME]} '
+                f'- {self.recipe.name[:settings.FIELDS_SHORT_NAME]}')
 
 
 class ShoppingCart(UserRecipeBaseModel):
@@ -234,4 +232,5 @@ class ShoppingCart(UserRecipeBaseModel):
         ]
 
     def __str__(self):
-        return f'{self.user} - {self.recipe}'
+        return (f'{self.user.username[:settings.FIELDS_SHORT_NAME]} '
+                f'- {self.recipe.name[:settings.FIELDS_SHORT_NAME]}')
