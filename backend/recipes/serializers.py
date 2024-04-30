@@ -179,7 +179,7 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
                 'Пустое поле ingredients',
                 status.HTTP_400_BAD_REQUEST
             )
-        ingredients = {}
+        ingredients = set()
         for ingredient in value:
             if ingredient not in self.instance.recipes.all():
                 raise serializers.ValidationError(
@@ -201,7 +201,7 @@ class RecipeCUDSerializer(serializers.ModelSerializer):
                 detail='Пустое поле tags',
                 code=status.HTTP_400_BAD_REQUEST
             )
-        tags = {}
+        tags = set()
         for tag in value:
             if tag in tags:
                 raise serializers.ValidationError(
